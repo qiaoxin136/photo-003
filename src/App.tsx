@@ -692,9 +692,8 @@ function App() {
               if (loc.photos) {
 
                 rows.push(
-                  <h4>Date: {loc.date}  &nbsp; &nbsp;&nbsp; Time: {loc.time} 
-                  &nbsp; &nbsp; &nbsp;Locaton: ( {loc.lat},  {loc.lng} )<br>
-                  Description: {loc.description}</br></h4>)
+                  <h4>Date: {loc.date}  &nbsp; &nbsp;&nbsp; Description: {loc.description} 
+                  &nbsp; &nbsp; &nbsp;</h4>)
                 loc.photos.forEach((photo, idx ) => {
                   if (photo) {
                     rows.push(<StorageImage path={photo} 
