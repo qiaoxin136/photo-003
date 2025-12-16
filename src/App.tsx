@@ -1,5 +1,5 @@
-import type { ChangeEvent, SyntheticEvent  } from "react";
-import { useEffect, useState } from "react";
+import type { ChangeEvent, SyntheticEvent } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { Schema } from "../amplify/data/resource";
 import { checkLoginAndGetName } from "./utils/AuthUtils";
 import { useAuthenticator } from '@aws-amplify/ui-react';
@@ -53,6 +53,10 @@ import { GeoJsonLayer } from "@deck.gl/layers/typed";
 //import { IconLayer } from "@deck.gl/layers/typed";
 import { MVTLayer } from "@deck.gl/geo-layers/typed";
 import { TextLayer } from "@deck.gl/layers/typed";
+
+const client = generateClient<Schema>();
+
+//type ByCategory = Record<string, { count: number; sum: number }>;
 
 
 const theme: Theme = {
@@ -130,7 +134,7 @@ function DeckGLOverlay(
 function App() {
 
   const { signOut } = useAuthenticator();
-  const client = generateClient<Schema>();
+  //const client = generateClient<Schema>();
   const [location, setLocation] = useState<Array<Schema["Location"]["type"]>>([]);
 
   const [date, setDate] = useState("");
@@ -152,7 +156,7 @@ function App() {
   const [showPopup, setShowPopup] = useState<boolean>(true);
   const [checked, setChecked] = useState<boolean>(false);
 
-  //const [checked, setChecked] = useState<boolean>(false);
+  //const { totalSum, totalCount, byCategory } = useExpenseAggregates();
 
   const options: SelectOption[] = [
     { value: 'water', label: 'Water' },
@@ -555,54 +559,91 @@ function App() {
 
   }
 
-  async function handleUpload(event: SyntheticEvent,id: string) {
-        event.preventDefault();
+  async function handleUpload(event: SyntheticEvent, id: string) {
+    event.preventDefault();
 
-        if(userName) {
-            let placePhotosUrls: string[] = [];
+    if (userName) {
+      let placePhotosUrls: string[] = [];
 
-            if (placePhotos) {
-                const uploadResult = await uploadPhotos(placePhotos)
-                placePhotosUrls = uploadResult.urls;
-               
-            }
+      if (placePhotos) {
+        const uploadResult = await uploadPhotos(placePhotos)
+        placePhotosUrls = uploadResult.urls;
 
-            await client.models.Location.update({
-                id: id,
-                photos: placePhotosUrls,
+      }
 
-            })
+      await client.models.Location.update({
+        id: id,
+        photos: placePhotosUrls,
+
+      })
 
 
-            clearFields();
-        }
+      clearFields();
     }
+  }
 
-    function clearFields() {
-        //setuserName('');
-        setPlacePhotos([]);
+  function clearFields() {
+    //setuserName('');
+    setPlacePhotos([]);
+  }
+
+  async function uploadPhotos(files: File[]): Promise<{
+    urls: string[]
+
+  }> {
+    const urls: string[] = [];
+
+    for (const file of files) {
+      console.log(`uploading file ${file.name}`)
+      const result = await uploadData({
+        data: file,
+        path: `originals/${file.name}`
+      }).result
+      urls.push(result.path);
+
     }
+    return {
+      urls,
 
-    async function uploadPhotos(files: File[]): Promise<{
-        urls: string[]
+    };
+  }
 
-    }> {
-        const urls: string[] = [];
- 
-        for (const file of files) {
-            console.log(`uploading file ${file.name}`)
-            const result = await uploadData({
-                data: file,
-                path: `originals/${file.name}`
-            }).result
-            urls.push(result.path);
-  
-        }
-        return {
-            urls,
-         
-        };
-    }
+  // function useExpenseAggregates() {
+  //   const [items, setItems] = useState<Array<Schema["Location"]["type"]>>([]);
+
+  //   useEffect(() => {
+  //     // Realtime query (updates when data changes)
+  //     const sub = client.models.Location.observeQuery({
+  //       // optional: add filter to limit what you pull down
+  //       // filter: { createdAt: { ge: "2025-12-01T00:00:00.000Z" } },
+  //     }).subscribe({
+  //       next: ({ items }) => setItems(items),
+  //       error: (err) => console.error(err),
+  //     });
+
+  //     return () => sub.unsubscribe();
+  //   }, []);
+
+  //   const aggregates = useMemo(() => {
+  //     const byCategory: ByCategory = {};
+  //     let totalSum = 0;
+
+  //     for (const e of items) {
+  //       const cat = e.track ?? "Uncategorized";
+  //       const amt = Number(e.length ?? 0);
+
+  //       totalSum += amt;
+
+  //       if (!byCategory[cat]) byCategory[cat] = { count: 0, sum: 0 };
+  //       byCategory[cat].count += 1;
+  //       byCategory[cat].sum += amt;
+  //     }
+
+  //     return { totalSum, byCategory, totalCount: items.length };
+  //   }, [items]);
+
+  //   return aggregates;
+  // }
 
 
 
@@ -735,11 +776,11 @@ function App() {
                     </Button>
                     <br />
                     <Button
-                      onClick={(e)=>{
+                      onClick={(e) => {
                         handleUpload(e, clickInfo.properties.id);
                         setShowPopup(false);
                       }}
-                      >
+                    >
                       Upload Photo
                     </Button>
                   </Popup>
@@ -834,6 +875,23 @@ function App() {
               </ScrollView>
             </>)
           },
+          // {
+          //   label: "Statistics",
+          //   value: "3",
+          //   content: (<>
+          //     <div>
+          //       <h2>Total Lenght (ft): {totalSum.toFixed(0)} ({totalCount} items)</h2>
+
+          //       <ul>
+          //         {Object.entries(byCategory).map(([cat, v]) => (
+          //           <li key={cat}>
+          //             {cat}: {v.sum.toFixed(0)} feet ({v.count} counts)
+          //           </li>
+          //         ))}
+          //       </ul>
+          //     </div>
+          //   </>)
+          // },
         ]}
       />
 
